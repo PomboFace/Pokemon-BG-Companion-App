@@ -1,0 +1,14 @@
+{
+  "trainers": [
+    { "name": "Red",    "color": "#E53935" },
+    { "name": "Blue",   "color": "#006fd1" },
+    { "name": "Green",   "color": "#43A047" },
+    { "name": "Gold", "color": "#d4a004" },
+    { "name": "Lyra",  "color": "#9e0936" },
+    { "name": "Crystal","color": "#9debda" },
+    { "name": "Silver","color": "#a1a1a1" },
+    { "name": "May","color": "#29bf00" },
+    { "name": "Brendan","color": "#db5237" },
+    { "name": "Wally","color": "#ccf250" }
+  ]
+}

@@ -1,0 +1,346 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Pokémon TT Companion</title>
+<script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<style>
+:root{--felt:#1c1530;--ink:#f4eefc;--card:#2a2045;--mut:#a79bc7;--gold:#ffcb05;--bad:#e5484d;--ok:#3fb27f}
+*{box-sizing:border-box;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+body{margin:0;background:var(--felt);color:var(--ink);font:16px "Trebuchet MS",system-ui,sans-serif;min-height:100vh;transition:background .4s}
+button,input,select{font:inherit;color:inherit;background:#0004;border:1px solid #fff3;border-radius:999px;padding:8px 14px}
+select option{background:#2a2045}
+input{-webkit-user-select:text;user-select:text}input[type=range]{padding:0;background:none;border:0;width:80px}
+button{cursor:pointer;transition:transform .1s,filter .15s}button:hover{filter:brightness(1.2)}button:active{transform:scale(.96)}
+button.pri{background:linear-gradient(135deg,#ffd83a,#ff9f1c);color:#2a1a00;border:0;font-weight:800}
+button.ok{background:var(--ok);border:0}button.no{background:var(--bad);border:0}
+section{display:none;padding:14px;max-width:1100px;margin:auto}
+#join{text-align:center;padding-top:6vh;max-width:520px}#join h1{margin:0 0 6px;font-size:2rem}
+#join input{display:block;margin:10px auto;width:min(280px,90%);text-align:center}
+#room{font:700 1.8rem monospace;letter-spacing:.3em;text-transform:uppercase}
+.tg{display:flex;flex-wrap:wrap;justify-content:center;gap:12px;margin:14px 0}
+.tp{padding:0;width:72px;height:72px;border-radius:50%;border:3px solid transparent;background:none}
+.tp.sel{border-color:var(--gold);transform:scale(1.12);box-shadow:0 0 16px var(--gold)}
+.ti{position:relative;flex:none;border-radius:50%;overflow:hidden;display:flex;align-items:center;justify-content:center;font-weight:800;border:3px solid #fff9;box-shadow:0 3px 10px #0006}
+.ti img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+#host{max-width:1100px}.hgrid{display:grid;grid-template-columns:190px 1fr;gap:16px;align-items:start}
+@media(max-width:720px){.hgrid{grid-template-columns:1fr}}
+.panel{background:var(--card);border-radius:18px;padding:14px;position:sticky;top:10px;box-shadow:0 6px 18px #0005}
+.panel h4{margin:14px 0 8px;color:var(--mut)}.modes{display:flex;align-items:center;gap:6px;justify-content:center;font-weight:700}
+.regl{display:flex;flex-direction:column;gap:6px}.regl button{text-align:left;border-radius:10px}
+.bar{display:flex;align-items:center;gap:10px;margin-bottom:12px}.pass{margin-left:auto;padding:12px 22px;font-size:1.05rem}
+.code{font:800 1.7rem monospace;letter-spacing:.2em;color:var(--gold);background:#0004;border-radius:12px;padding:4px 16px;position:relative}
+.code.copied::after{content:"copied ✓";position:absolute;left:100%;margin-left:8px;font:700 .8rem system-ui;letter-spacing:0;color:var(--ok);white-space:nowrap}
+main h3{margin:18px 0 8px}.look{display:flex;gap:12px;align-items:center;flex-wrap:wrap}.look input{width:230px}
+#prev{width:76px;flex:none;cursor:grab}.ghost{position:fixed;width:70px;z-index:99;pointer-events:none;opacity:.9}
+.encb{display:flex;gap:12px;align-items:center;background:var(--card);border-radius:16px;padding:12px;min-height:84px;box-shadow:0 4px 14px #0004}
+.encb .chip{width:60px;flex:none}.over{outline:3px solid #fff;outline-offset:2px}
+.pc{display:flex;align-items:center;gap:12px;border-radius:18px;padding:12px;margin:10px 0;border:3px solid transparent;box-shadow:0 4px 14px #0005}
+.pc.turn{border-color:var(--gold);box-shadow:0 0 18px #ffcb05aa}.pc.lift{opacity:.7}.pc.off .pcb{opacity:.55}
+.pcb{flex:1;min-width:0}.pt{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.pt button{margin-left:auto;padding:3px 10px;font-size:.8rem}
+.h{cursor:grab;touch-action:none;padding:4px;opacity:.7}
+.party{display:flex;gap:10px;margin:8px 0}.pk{width:54px;text-align:center;position:relative;font-weight:700;font-size:.85rem}
+.pk a{position:absolute;top:-4px;right:-4px;background:#000a;color:#fff;border-radius:50%;width:18px;height:18px;font-size:.65rem;line-height:18px;text-decoration:none}
+.pk .chip.first{border-color:var(--gold)}.bds{display:flex;gap:4px;flex-wrap:wrap}
+.bd{width:30px;height:30px;padding:0;border-radius:50%;opacity:.35;font-size:.65rem;overflow:hidden}.bd.on{opacity:1;border-color:var(--gold)}.bd img{width:100%;height:100%}
+/* player */
+#top{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;padding-top:calc(env(safe-area-inset-top,0px) + 4px)}
+#phead{display:flex;align-items:center;gap:12px;min-width:0}
+#pname{font:800 1.7rem/1 "Trebuchet MS",sans-serif;text-shadow:0 1px 6px #0004}
+#tcl{display:none;align-items:center;gap:8px}#tcl button{padding:8px 16px;font-weight:800}
+#turn{padding:9px 16px;border-radius:999px;font:800 .95rem "Trebuchet MS",sans-serif;letter-spacing:.05em;color:#fff;background:linear-gradient(135deg,#ff3cac,#ff9a3c);animation:glow 1s ease-in-out infinite alternate}
+@keyframes glow{from{box-shadow:0 0 6px #ff3cac}to{box-shadow:0 0 26px #ff9a3c}}
+#player{padding-bottom:90px}
+#badges{position:fixed;right:10px;bottom:calc(env(safe-area-inset-bottom,0px) + 10px);display:grid;grid-template-columns:repeat(4,30px);gap:4px;z-index:5}
+#badges div{width:30px;height:30px;border-radius:50%;background:#0006;border:1px solid var(--gold);font-size:.6rem;display:flex;align-items:center;justify-content:center;overflow:hidden}
+#badges img{width:100%;height:100%}
+#leave{position:fixed;left:12px;bottom:calc(env(safe-area-inset-bottom,0px) + 12px);z-index:5;padding:6px 14px;font-size:.85rem}
+#row{display:flex;justify-content:center;align-items:flex-start;margin-top:36px}
+.slot{flex:0 0 22vw;max-width:130px;margin:0 1vw;text-align:center}
+.slot.enc{flex-basis:0;max-width:0;margin:0;opacity:0;overflow:visible;transition:flex-basis .35s,max-width .35s,margin .35s,opacity .35s;pointer-events:none}
+.slot.enc.open{flex-basis:22vw;max-width:130px;margin:0 1vw;opacity:1;pointer-events:auto}
+.chip,.bp{touch-action:none}
+.chip{position:relative;aspect-ratio:1;display:flex;align-items:center;justify-content:center}
+.chip::before{content:"";position:absolute;inset:-6%;border-radius:50%;opacity:0;transition:opacity .2s}
+.chip img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;pointer-events:none;z-index:1;filter:drop-shadow(0 3px 4px #0007)}
+.chip.empty:not(:has(img)),.chip.noimg{border:2px dashed #fff6;border-radius:50%}
+.nm{font-size:.7rem;padding:4px;word-break:break-all;color:#fff}
+.chip.f img,.chip.f .nm{filter:brightness(.22)}
+.slot.first .chip::before,.chip.first::before{opacity:1;background:radial-gradient(circle,#ffcb0577,#ffcb0522 62%,transparent 72%);box-shadow:0 0 18px #ffcb05;border:3px solid var(--gold)}
+.slot.enc .chip::before{opacity:1;background:radial-gradient(circle,#b388ff66,transparent 70%);box-shadow:0 0 16px #b388ff;border:3px solid #b388ff}
+.slot.over .chip::before{opacity:1;box-shadow:0 0 0 3px #fff,0 0 18px #fff}
+.bp{margin-top:8px;display:flex;align-items:center;justify-content:center;gap:3px;min-height:2.4rem;color:#fff;font:900 1.7rem/1 "Arial Black",Impact,sans-serif;-webkit-text-stroke:3px #000;paint-order:stroke fill;text-shadow:0 2px 0 #000}
+.bp i{font-style:normal;font-size:.8rem;-webkit-text-stroke:2px #000}
+.bp .pl{font-size:.9rem;align-self:flex-start;margin-top:3px}
+.slot .done{margin-top:8px;padding:4px 12px;font-size:.8rem}
+.hint{text-align:center;opacity:.6;font-size:.8rem;margin-top:40px}
+</style></style></head><body>
+<section id="join">
+  <h1>Pokémon TT</h1>
+  <div class="tg" id="tg"></div>
+  <input id="name" placeholder="Your name" maxlength="16">
+  <input id="room" placeholder="ROOM" maxlength="4">
+  <button class="pri" id="go">Join room</button>
+  <p><select id="rsel" title="Region for this room"></select> <button id="mk">Host a new room</button> <button id="resume" style="display:none"></button></p>
+  <p id="jerr" style="color:#ff8a8a"></p>
+</section>
+<section id="host"></section>
+<section id="player">
+  <div id="top"><div id="phead"></div><div id="tcl"><div id="turn">YOUR TURN</div><button class="pri" id="pass">Pass ▶</button></div></div>
+  <div id="row"></div>
+  <div class="hint">Drag a chip to the left slot to make it active · double-tap to faint or revive · swipe the number to change it, hold the left or right half to count down or up.</div>
+  <div class="hint" id="st"></div>
+  <button id="leave">Leave</button><div id="badges"></div>
+</section>
+<script>
+const $=s=>document.querySelector(s);
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const clamp=v=>Math.max(0,Math.min(10,v)), fmt=v=>v.toFixed(v%1?1:0);
+
+/* ---------- Pokémon + image lookup (edit chipSrc/badgeSrc if your file names differ) ---------- */
+const DEX="Bulbasaur,Ivysaur,Venusaur,Charmander,Charmeleon,Charizard,Squirtle,Wartortle,Blastoise,Caterpie,Metapod,Butterfree,Weedle,Kakuna,Beedrill,Pidgey,Pidgeotto,Pidgeot,Rattata,Raticate,Spearow,Fearow,Ekans,Arbok,Pikachu,Raichu,Sandshrew,Sandslash,Nidoran♀,Nidorina,Nidoqueen,Nidoran♂,Nidorino,Nidoking,Clefairy,Clefable,Vulpix,Ninetales,Jigglypuff,Wigglytuff,Zubat,Golbat,Oddish,Gloom,Vileplume,Paras,Parasect,Venonat,Venomoth,Diglett,Dugtrio,Meowth,Persian,Psyduck,Golduck,Mankey,Primeape,Growlithe,Arcanine,Poliwag,Poliwhirl,Poliwrath,Abra,Kadabra,Alakazam,Machop,Machoke,Machamp,Bellsprout,Weepinbell,Victreebel,Tentacool,Tentacruel,Geodude,Graveler,Golem,Ponyta,Rapidash,Slowpoke,Slowbro,Magnemite,Magneton,Farfetch’d,Doduo,Dodrio,Seel,Dewgong,Grimer,Muk,Shellder,Cloyster,Gastly,Haunter,Gengar,Onix,Drowzee,Hypno,Krabby,Kingler,Voltorb,Electrode,Exeggcute,Exeggutor,Cubone,Marowak,Hitmonlee,Hitmonchan,Lickitung,Koffing,Weezing,Rhyhorn,Rhydon,Chansey,Tangela,Kangaskhan,Horsea,Seadra,Goldeen,Seaking,Staryu,Starmie,Mr. Mime,Scyther,Jynx,Electabuzz,Magmar,Pinsir,Tauros,Magikarp,Gyarados,Lapras,Ditto,Eevee,Vaporeon,Jolteon,Flareon,Porygon,Omanyte,Omastar,Kabuto,Kabutops,Aerodactyl,Snorlax,Articuno,Zapdos,Moltres,Dratini,Dragonair,Dragonite,Mewtwo,Mew".split(',');
+const key=n=>n.toLowerCase().replace('♀','f').replace('♂','m').replace(/[^a-z0-9]/g,'');
+const NUM={};DEX.forEach((n,i)=>NUM[key(n)]=i+1);
+// Chip registry. mon.n is a chip id such as "0001_bulbasaur" (the file name without extension).
+// The list comes from chips/chips.json (made by make_chips_list.py); until then the Gen 1 names are used.
+const pad=n=>String(n).padStart(4,'0'),prettify=t=>t.replace(/[-_]+/g,' ').replace(/\b\w/g,c=>c.toUpperCase());
+let CHIP={},BYKEY={};
+function initChips(list){
+  if(!Array.isArray(list)||!list.length)list=DEX.map((n,i)=>pad(i+1)+'_'+key(n)+'.png');
+  CHIP={};BYKEY={};
+  list.forEach(file=>{const id=file.replace(/\.[^.]+$/,''),m=id.match(/^(\d+)_(.+)$/);if(!m)return;
+    const num=+m[1],std=DEX[num-1];CHIP[id]={id,num,file,name:std&&key(std)===key(m[2])?std:prettify(m[2])}});
+  Object.values(CHIP).sort((a,b)=>a.num-b.num||a.id.localeCompare(b.id)).forEach(c=>{if(!(key(c.name) in BYKEY))BYKEY[key(c.name)]=c.id});
+}
+initChips();
+const chipOf=id=>{
+  if(typeof id==='number'){const nm=DEX[id-1]||'?';id=BYKEY[key(nm)]||pad(id)+'_'+key(nm)}      // saved games from older versions
+  return CHIP[id]||(CHIP[id]={id,num:0,file:id+'.png',name:prettify(String(id).replace(/^\d+_/,''))});
+};
+const resolve=name=>{                                   // region name -> chip id (falls back to the Gen 1 dex)
+  const k=key(name);if(BYKEY[k])return BYKEY[k];
+  const n=NUM[k];if(!n)return null;const id=pad(n)+'_'+k;
+  CHIP[id]={id,num:n,file:id+'.png',name:DEX[n-1]};BYKEY[k]=id;return id;
+};
+const BADGES=['Boulder','Cascade','Thunder','Rainbow','Soul','Marsh','Volcano','Earth'];
+const badgeSrc=i=>`badges/${BADGES[i].toLowerCase()}.png`;                    // badges/boulder.png
+const chipHTML=m=>{const c=chipOf(m.n);return `<span class="nm">${esc(c.name)}</span><img src="chips/${esc(c.file)}" draggable="false" onerror="this.remove()">`};
+const EMPTY='<img src="chips/placeholder.png" draggable="false" onerror="this.parentNode.classList.add(\'noimg\');this.remove()">';
+const BPHTML=v=>`<i>◀</i><span class="pl">+</span><span class="n">${fmt(v)}</span><i>▶</i>`;
+let TR=[],REG=[];
+const tr=n=>TR.find(t=>t.name===n)||{name:n||'?',color:'#6b4fa0'};
+const ink=c=>{const n=parseInt(c.slice(1),16);return (((n>>16)&255)*299+((n>>8)&255)*587+(n&255)*114)/1000>150?'#161022':'#fff'};
+const iconHTML=(n,px)=>{const t=tr(n);return `<div class="ti" style="width:${px}px;height:${px}px;background:${t.color};color:${ink(t.color)};font-size:${px/2.4}px">${esc((n||'?')[0])}<img src="trainers/${esc(t.image||key(t.name)+'.png')}" draggable="false" onerror="this.remove()"></div>`};
+const badgeHTML=i=>`<img src="${badgeSrc(i)}" alt="${BADGES[i]}" title="${BADGES[i]}" onerror="this.replaceWith(${i+1})">`;
+
+/* ---------- State ---------- */
+// S = {room, mode:0 early|1 mid, players:{pid:{name,team:[mon|null x3],badges:[0|1 x8],on}}, order:[pid], turn:int,
+//      enc:null|{pid, st:'pending'|'won', region, mon}}      mon = {n:dexNumber, bp:0..10 step .5, f:fainted}
+let S=null,ENC={},peer=null,hostConn=null,conns={},isHost=false,busy=false;
+const store={get:k=>{try{return JSON.parse(localStorage[k]||'null')}catch(e){return null}},set:(k,v)=>localStorage[k]=JSON.stringify(v)};
+let me=store.get('ptt_pid')||Math.random().toString(36).slice(2);store.set('ptt_pid',me);
+function show(id){['join','host','player'].forEach(s=>$('#'+s).style.display=s===id?'block':'none')}
+
+/* ---------- HOST: rules ---------- */
+function act(pid,m){           // validates and applies one player action
+  const p=S.players[pid];if(!p)return;
+  const e=S.enc&&S.enc.pid===pid?S.enc:null,won=!!e;
+  const ok=i=>Number.isInteger(i)&&i>=0&&(i<3||(i===3&&won));
+  const get=i=>i<3?p.team[i]:e.mon, set=(i,v)=>{if(i<3)p.team[i]=v;else e.mon=v};
+  if(m.t==='bp'&&ok(m.i)&&get(m.i))get(m.i).bp=clamp(Math.round(+m.v*2)/2);
+  else if(m.t==='faint'&&ok(m.i)&&get(m.i))get(m.i).f=get(m.i).f?0:1;
+  else if(m.t==='move'&&ok(m.a)&&ok(m.b)&&m.a!==m.b&&get(m.a)){const x=get(m.a),y=get(m.b);set(m.a,y);set(m.b,x);if(e&&!e.mon)S.enc=null}
+  else if(m.t==='pass'&&S.order.length&&S.order[S.turn]===pid)S.turn=(S.turn+1)%S.order.length;
+  else if(m.t==='close'&&won)S.enc=null;   // whatever is left in slot 4 is released
+}
+const weight=bp=>S.mode?(bp>=4&&bp<=7?4:1):(bp<=4?4:1);   // 4:1 in favour of the current phase
+function roll(region){
+  const cur=S.order[S.turn];if(!cur)return alert('No players yet');
+  if(S.enc&&!confirm('Replace the current encounter?'))return;
+  const list=ENC[region],rare=list.filter(x=>x.BP>=8),norm=list.filter(x=>x.BP<8);
+  let r=Math.random()*100,pick;
+  if(r<rare.length)pick=rare[Math.floor(r)];                  // each 8+ BP pokémon: exactly 1/100
+  else{let t=Math.random()*norm.reduce((a,x)=>a+weight(x.BP),0);pick=norm.find(x=>(t-=weight(x.BP))<0)||norm[0]}
+  const id=resolve(pick.pokemon);if(!id)return alert('No chip or dex entry for '+pick.pokemon);setEnc(cur,id);
+}
+function setEnc(pid,id){      // encounters are always unlocked for their player; new pokémon start at bonus 0
+  if(!id)return alert('Unknown pokémon');
+  S.enc={pid,st:'won',region:'',mon:{n:id,bp:0,f:0}};
+}
+function save(){if(isHost)store.set('ptt_host',S)}
+function broadcast(){for(const c of Object.values(conns))if(c.open)c.send({t:'s',s:S})}
+function commit(){save();broadcast();if(!busy)hostRender()}
+
+/* ---------- HOST: networking ---------- */
+const rcode=()=>Array.from({length:4},()=>'ABCDEFGHJKLMNPQRSTUVWXYZ'[Math.random()*24|0]).join('');
+function startHost(resume){
+  const saved=resume?store.get('ptt_host'):null,sel=$('#rsel'),file=saved?(saved.region||'kanto.json'):sel.value,
+    rname=saved?(saved.rname||file):(sel.selectedOptions[0]?.textContent||file);
+  fetch('regions/'+file).then(r=>r.json()).then(j=>{ENC=j;beginHost(saved,file,rname)})
+    .catch(()=>$('#jerr').textContent='Could not load regions/'+file);
+}
+function beginHost(saved,file,rname){
+  const room=saved?saved.room:rcode();
+  peer&&peer.destroy();peer=new Peer('ptt-'+room);
+  peer.on('error',e=>{if(e.type==='unavailable-id'&&!saved)startHost();else $('#jerr').textContent=e.type==='unavailable-id'?'Room is still held by the old tab. Wait a few seconds and retry.':'Connection error: '+e.type});
+  peer.on('open',()=>{isHost=true;S=saved||{room,region:file,rname,mode:0,players:{},order:[],turn:0,enc:null};hostShell();show('host');commit()});
+  peer.on('connection',c=>{
+    c.on('data',m=>{
+      if(m.t==='join'){let p=S.players[m.pid];
+        if(m.tr&&Object.entries(S.players).some(([id,q])=>id!==m.pid&&q.tr===m.tr)){c.send({t:'taken'});return}
+        if(!p){p=S.players[m.pid]={name:String(m.name||'Trainer').slice(0,16),tr:m.tr,team:[null,null,null],badges:Array(8).fill(0)};S.order.push(m.pid)}
+        p.on=true;conns[m.pid]=c;c.pid=m.pid}
+      else if(c.pid)act(c.pid,m);
+      commit()});
+    c.on('close',()=>{if(c.pid&&conns[c.pid]===c){delete conns[c.pid];if(S.players[c.pid])S.players[c.pid].on=false;commit()}});
+  });
+}
+
+/* ---------- HOST: UI ---------- */
+function hostShell(){
+  $('#host').innerHTML=`<div class="hgrid"><aside class="panel">
+   <label class="modes">Early <input type="range" id="mode" min="0" max="1"> Mid</label>
+   <h4>Roll an encounter<br><small>${esc(S.rname||'')}</small></h4><div class="regl">${Object.keys(ENC).map(r=>`<button data-a="roll" data-v="${esc(r)}">${esc(r)}</button>`).join('')}</div></aside>
+  <main><div class="bar"><button class="code" id="rc" data-a="copy" title="Click to copy"></button><button class="pri pass" data-a="pass">Pass turn ▶</button></div>
+   <div class="look"><input id="nm" list="dl" placeholder="Search Pokémon…" autocomplete="off"><div id="prev" class="chip empty"></div>
+    <small style="color:var(--mut);flex:1;min-width:140px">Drag the picture onto a player to give it, or onto the encounter box to add it.</small></div>
+   <datalist id="dl">${Object.values(CHIP).sort((a,b)=>a.num-b.num).map(c=>`<option value="${esc(c.name)}">`).join('')}</datalist>
+   <h3>Current encounter</h3><div class="encb" id="encb"></div>
+   <h3>Players <small style="color:var(--mut)">drag ⠿ to set the turn order</small></h3><div id="plist"></div></main></div>`;
+  $('#mode').oninput=e=>{S.mode=+e.target.value;save()};
+  $('#nm').oninput=e=>{const n=BYKEY[key(e.target.value.trim())],v=$('#prev');
+    v.className='chip '+(n?'has':'empty');v.dataset.n=n||'';v.innerHTML=n?chipHTML({n}):''};
+}
+function hostRender(){
+  const P=S.players,cur=S.order[S.turn],e=S.enc;
+  $('#rc').textContent=S.room;$('#mode').value=S.mode;
+  $('#encb').innerHTML=!e?'<span style="color:var(--mut)">No active encounter. Roll a region, or drop a searched Pokémon here.</span>':
+    `<div class="chip has">${chipHTML(e.mon)}</div><div style="flex:1"><b>${esc(chipOf(e.mon.n).name)}</b> for ${esc(P[e.pid]?.name||'?')}<br><small style="color:var(--mut)">player is choosing</small></div>`+'<button data-a="lose">Dismiss</button>';
+  $('#plist').innerHTML=S.order.map(pid=>{const p=P[pid],col=tr(p.tr).color;return `<div class="pc ${pid===cur?'turn':''} ${p.on?'':'off'}" data-pid="${pid}" style="background:${col};color:${ink(col)}">
+    <span class="h">⠿</span>${iconHTML(p.tr,60)}<div class="pcb"><div class="pt"><b style="font-size:1.15rem">${esc(p.name)}</b>${p.on?'':'<small>(offline)</small>'}${pid===cur?'<small>← turn</small>':''}<button data-a="rm" data-p="${pid}">Remove</button></div>
+    <div class="party">${p.team.map((m,i)=>m?`<div class="pk"><div class="chip has ${i?'':'first'} ${m.f?'f':''}">${chipHTML(m)}</div>${fmt(m.bp)}<a href="#" data-a="rmmon" data-p="${pid}" data-i="${i}">✕</a></div>`:`<div class="pk"><div class="chip empty">${EMPTY}</div></div>`).join('')}</div>
+    <div class="bds">${BADGES.map((b,i)=>`<button class="bd ${p.badges[i]?'on':''}" data-a="badge" data-p="${pid}" data-i="${i}" title="${b}">${badgeHTML(i)}</button>`).join('')}</div></div></div>`}).join('')||'<p style="color:var(--mut)">Waiting for players to join with the room ID.</p>';
+}
+$('#host').addEventListener('click',ev=>{
+  const b=ev.target.closest('[data-a]');if(!b||!S)return;ev.preventDefault();
+  const a=b.dataset.a,v=b.dataset.v,p=b.dataset.p,i=+b.dataset.i;
+  if(a==='copy'){navigator.clipboard?.writeText(S.room);b.classList.add('copied');setTimeout(()=>b.classList.remove('copied'),1300);return}
+  if(a==='pass'){if(S.order.length)S.turn=(S.turn+1)%S.order.length}
+  else if(a==='roll')roll(v);
+  else if(a==='win'&&S.enc)S.enc.st='won';
+  else if(a==='lose')S.enc=null;
+  else if(a==='rmmon')S.players[p].team[i]=null;
+  else if(a==='badge')S.players[p].badges[i]^=1;
+  else if(a==='rm'){if(!confirm('Remove '+S.players[p].name+'?'))return;
+    const idx=S.order.indexOf(p);S.order.splice(idx,1);if(idx<S.turn)S.turn--;if(S.turn>=S.order.length)S.turn=0;
+    if(S.enc?.pid===p)S.enc=null;conns[p]?.send({t:'kicked'});delete conns[p];delete S.players[p]}
+  commit();
+});
+function dropMon(n,e){                                  // searched pokémon dropped on a player or the encounter box
+  const t=document.elementFromPoint(e.clientX,e.clientY),pc=t?.closest('.pc'),eb=t?.closest('#encb'),cur=S.order[S.turn];
+  if(!pc&&!eb)return;if(eb&&!cur)return alert('No players yet');
+  if(S.enc&&!confirm('Replace the current encounter?'))return;
+  if(pc)setEnc(pc.dataset.pid,n);else setEnc(cur,n);
+  commit();
+}
+$('#host').addEventListener('pointerdown',ev=>{
+  const pv=ev.target.closest('#prev.has'),h=ev.target.closest('.h');
+  if(pv){ev.preventDefault();const n=pv.dataset.n,g=document.createElement('div');
+    g.className='chip has ghost';g.innerHTML=pv.innerHTML;document.body.append(g);
+    const mv=e=>{g.style.left=e.clientX-35+'px';g.style.top=e.clientY-35+'px';
+      document.querySelectorAll('.over').forEach(x=>x.classList.remove('over'));
+      const t=document.elementFromPoint(e.clientX,e.clientY);(t?.closest('.pc')||t?.closest('#encb'))?.classList.add('over')};
+    const up=e=>{removeEventListener('pointermove',mv);removeEventListener('pointerup',up);removeEventListener('pointercancel',up);
+      g.remove();document.querySelectorAll('.over').forEach(x=>x.classList.remove('over'));dropMon(n,e)};
+    mv(ev);addEventListener('pointermove',mv);addEventListener('pointerup',up);addEventListener('pointercancel',up);return}
+  if(!h)return;
+  const card=h.closest('.pc'),list=card.parentNode;ev.preventDefault();busy=true;card.classList.add('lift');
+  const mv=e=>{const t=document.elementFromPoint(e.clientX,e.clientY)?.closest('.pc');
+    if(t&&t!==card&&t.parentNode===list){const r=t.getBoundingClientRect();list.insertBefore(card,e.clientY<r.top+r.height/2?t:t.nextSibling)}};
+  const up=()=>{removeEventListener('pointermove',mv);removeEventListener('pointerup',up);removeEventListener('pointercancel',up);
+    const cur=S.order[S.turn];S.order=[...list.children].map(c=>c.dataset.pid);S.turn=Math.max(0,S.order.indexOf(cur));busy=false;commit()};
+  addEventListener('pointermove',mv);addEventListener('pointerup',up);addEventListener('pointercancel',up);
+});
+
+/* ---------- PLAYER ---------- */
+const send=m=>hostConn&&hostConn.open&&hostConn.send(m);
+let noRetry=false;
+function joinRoom(room,name,trn){
+  store.set('ptt_me',{room,name,tr:trn});noRetry=false;$('#jerr').textContent='';
+  peer&&peer.destroy();peer=new Peer();
+  const connect=()=>{
+    hostConn=peer.connect('ptt-'+room,{reliable:true});
+    hostConn.on('open',()=>{$('#st').textContent='';hostConn.send({t:'join',pid:me,name,tr:trn})});
+    hostConn.on('data',m=>{
+      if(m.t==='s'){S=m.s;if(!S.players[me])return;show('player');if(!busy)renderPlayer()}
+      if(m.t==='kicked'){localStorage.removeItem('ptt_me');location.reload()}
+      if(m.t==='taken'){noRetry=true;localStorage.removeItem('ptt_me');show('join');$('#jerr').textContent='That trainer is already taken. Pick another.'}});
+    hostConn.on('close',()=>{if(noRetry)return;$('#st').textContent='Disconnected, reconnecting…';setTimeout(connect,2000)});
+  };
+  peer.on('open',connect);
+  peer.on('error',e=>{if(e.type==='peer-unavailable'&&!noRetry){$('#jerr').textContent='Room not found. Is the host online?';$('#st').textContent='Room not found, retrying…';setTimeout(connect,3000)}});
+}
+const myMon=i=>{const p=S.players[me],e=S.enc&&S.enc.pid===me?S.enc:null;return i<3?p.team[i]:(e?e.mon:null)};
+function renderPlayer(){
+  const p=S.players[me],e=S.enc&&S.enc.pid===me?S.enc:null,col=tr(p.tr).color,st=document.documentElement.style;
+  if(p.tr){st.setProperty('--felt',col);st.setProperty('--ink',ink(col))}
+  $('#phead').innerHTML=iconHTML(p.tr,68)+`<div id="pname">${esc(p.name)}</div>`;
+  $('#tcl').style.display=S.order[S.turn]===me?'flex':'none';
+  $('#badges').innerHTML=p.badges.map((b,i)=>b?`<div>${badgeHTML(i)}</div>`:'').join('');
+  $('#row').innerHTML=[0,1,2,3].map(i=>{
+    const m=i<3?p.team[i]:(e&&e.mon);
+    return `<div class="slot ${i===0?'first':''} ${i===3?'enc'+(e?' open':''):''}" data-i="${i}">
+      <div class="chip ${m?'has':'empty'} ${m&&m.f?'f':''}" data-i="${i}">${m?chipHTML(m):EMPTY}</div>
+      <div class="bp" data-i="${i}">${m?BPHTML(m.bp):''}</div>
+      ${i===3&&e?'<button class="done" data-a="close">Done</button>':''}</div>`}).join('');
+}
+$('#row').addEventListener('click',ev=>{
+  if(ev.target.dataset.a==='close'&&confirm('Close the encounter slot? Anything still in it is released.'))send({t:'close'})});
+$('#row').addEventListener('pointerdown',ev=>{
+  const bp=ev.target.closest('.bp'),chip=ev.target.closest('.chip.has:not(.lock)');
+  if(bp&&bp.querySelector('.n'))bpGesture(ev,bp);else if(chip)chipGesture(ev,chip);
+});
+let lastTap={i:-1,t:0};
+function chipGesture(ev,chip){
+  const i=+chip.dataset.i,sx=ev.clientX,sy=ev.clientY;let moving=false;
+  ev.target.releasePointerCapture?.(ev.pointerId);
+  const slotAt=e=>document.elementFromPoint(e.clientX,e.clientY)?.closest('.slot');
+  const mv=e=>{const dx=e.clientX-sx,dy=e.clientY-sy;
+    if(!moving&&Math.hypot(dx,dy)>8){moving=true;busy=true;chip.style.pointerEvents='none';chip.style.zIndex=9}
+    if(!moving)return;
+    chip.style.transform=`translate(${dx}px,${dy}px) scale(1.12)`;
+    document.querySelectorAll('.slot').forEach(s=>s.classList.remove('over'));slotAt(e)?.classList.add('over')};
+  const up=e=>{removeEventListener('pointermove',mv);removeEventListener('pointerup',up);removeEventListener('pointercancel',up);
+    if(moving){const t=slotAt(e);busy=false;if(t&&+t.dataset.i!==i)send({t:'move',a:i,b:+t.dataset.i});renderPlayer()}
+    else{const now=Date.now();if(lastTap.i===i&&now-lastTap.t<350){send({t:'faint',i});lastTap={i:-1,t:0}}else lastTap={i,t:now}}};
+  addEventListener('pointermove',mv);addEventListener('pointerup',up);addEventListener('pointercancel',up);
+}
+function bpGesture(ev,node){
+  const i=+node.dataset.i,m=myMon(i);if(!m)return;
+  let v=m.bp,sx=ev.clientX,timer,tick;busy=true;
+  const side=ev.clientX>node.getBoundingClientRect().left+node.offsetWidth/2?1:-1;
+  const push=()=>{node.querySelector('.n').textContent=fmt(v);send({t:'bp',i,v})};
+  const stop=()=>{clearTimeout(timer);clearInterval(tick)};
+  const mv=e=>{const s=Math.trunc((e.clientX-sx)/18);if(s){stop();v=clamp(v+s*.5);sx+=s*18;push()}};
+  const up=()=>{stop();removeEventListener('pointermove',mv);removeEventListener('pointerup',up);removeEventListener('pointercancel',up);busy=false;S&&renderPlayer()};
+  timer=setTimeout(()=>{tick=setInterval(()=>{v=clamp(v+side*.5);push()},250)},450);   // hold: 0.5 every 0.25s
+  addEventListener('pointermove',mv);addEventListener('pointerup',up);addEventListener('pointercancel',up);
+}
+$('#pass').onclick=()=>{if(confirm('Pass your turn?'))send({t:'pass'})};
+$('#leave').onclick=e=>{e.preventDefault();localStorage.removeItem('ptt_me');location.reload()};
+
+/* ---------- Boot ---------- */
+let selTr=null;
+$('#go').onclick=()=>{const n=$('#name').value.trim(),r=$('#room').value.trim().toUpperCase();
+  if(!n||r.length!==4||(TR.length&&!selTr))return $('#jerr').textContent='Pick a trainer, enter your name and the 4-letter room ID.';joinRoom(r,n,selTr)};
+$('#mk').onclick=()=>startHost(false);
+$('#resume').onclick=()=>startHost(true);
+$('#tg').onclick=e=>{const b=e.target.closest('.tp');if(!b)return;selTr=b.dataset.n;document.querySelectorAll('.tp').forEach(x=>x.classList.toggle('sel',x===b))};
+Promise.all([fetch('regions/regions.json').then(r=>r.json()),fetch('trainers/trainers.json').then(r=>r.json()).catch(()=>({trainers:[]})),fetch('chips/chips.json').then(r=>r.json()).catch(()=>null)]).then(([j,t,cl])=>{initChips(Array.isArray(cl)?cl:cl&&cl.chips);
+  REG=j.regions||[];$('#rsel').innerHTML=REG.map(r=>`<option value="${esc(r.file)}">${esc(r.name)}</option>`).join('');TR=(t.trainers||[]).map(x=>({...x,color:x.color[0]==='#'?x.color:'#'+x.color}));
+  $('#tg').innerHTML=TR.map(x=>`<button class="tp" data-n="${esc(x.name)}" title="${esc(x.name)}">${iconHTML(x.name,66)}</button>`).join('');
+  show('join');
+  const h=store.get('ptt_host');if(h){$('#resume').style.display='';$('#resume').textContent='Resume room '+h.room}
+  const m=store.get('ptt_me');if(m){$('#name').value=m.name;$('#room').value=m.room;selTr=m.tr;
+    document.querySelectorAll('.tp').forEach(x=>x.classList.toggle('sel',x.dataset.n===m.tr));joinRoom(m.room,m.name,m.tr)}
+}).catch(()=>document.body.insertAdjacentHTML('afterbegin','<p style="padding:20px">Could not load regions/regions.json. Serve the folder over http (see README), not file://</p>'));
+</script></body></html>

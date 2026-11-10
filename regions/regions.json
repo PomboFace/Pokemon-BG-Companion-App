@@ -1,0 +1,5 @@
+{
+  "regions": [
+    { "name": "Kanto", "file": "kanto.json" }
+  ]
+}
